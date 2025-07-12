@@ -1,8 +1,6 @@
 <testsuites name="results">
   <testsuite name="all" package="all">
-    <property name="random_seed" value="1751386853" />
-    <testcase name="first_test" classname="test_video_sig" file="/home/ghermann/6.205/cocotb/sim/test_video_sig.py" lineno="18" time="425712.01660203934" sim_time_ns="18978650.0" ratio_time="44.580959098792526">
-      <failure message="Test failed with RANDOM_SEED=1751386853" />
-    </testcase>
+    <property name="random_seed" value="1752283002" />
+    <testcase name="pixel_reconstruct_test" classname="test_pixel_reconstruct" file="/home/ghermann/6.205/cocotb/sim/test_pixel_reconstruct.py" lineno="26" time="0.00553584098815918" sim_time_ns="280.001" ratio_time="50579.66812972134" />
   </testsuite>
 </testsuites>
