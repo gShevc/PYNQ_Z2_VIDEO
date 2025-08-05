@@ -20,7 +20,10 @@ async def reset(rst,clk):
     await ClockCycles(clk,1)
 
 async def drive_data(dut,data_byte,control_bits,ve_bit):
-
+    """ submit a set of data values as input, then wait a clock cycle for them to stay there. """
+    dut.data_in.value = data_byte
+    dut.control_in.value = control_bits
+    dut.ve_in.value = ve_bit
     await ClockCycles(dut.pixel_clk_in,1)
     
 @cocotb.test()

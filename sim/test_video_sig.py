@@ -23,7 +23,7 @@ async def first_test(dut):
     await Timer(5, "ns")
     await Timer(5, "ns")
     dut.rst_in.value = 0; #rst is off...let it run
-    await Timer(1000, "ms")
+    await Timer(1, "ms")
     
 
 

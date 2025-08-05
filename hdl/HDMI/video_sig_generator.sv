@@ -1,102 +1,112 @@
-  `default_nettype none // prevents system from inferring an undeclared logic (good practice)
-  module pong (
-    input wire pixel_clk_in,
-    input wire rst_in,
-    input wire [1:0] control_in,
-    input wire [3:0] puck_speed_in,
-    input wire [3:0] paddle_speed_in,
-    input wire nf_in,
-    input wire [10:0] hcount_in,
-    input wire [9:0] vcount_in,
-    output logic [7:0] red_out,
-    output logic [7:0] green_out,
-    output logic [7:0] blue_out
-    );
+module video_sig_generator (
+    input logic pixel_clk_in,              // 74.5 MHz clock
+    input logic rst_in,            // Asynchronous reset
 
-    //use these params!
-    localparam PADDLE_WIDTH = 16;
-    localparam PADDLE_HEIGHT = 128;
-    localparam PUCK_WIDTH = 128;
-    localparam PUCK_HEIGHT = 128;
-    localparam GAME_WIDTH = 1280;
-    localparam GAME_HEIGHT = 720;
+    output logic hs_out,          // Horizontal sync pulse
+    output logic vs_out,          // Vertical sync pulse
+    output logic [11:0] x,         // H count output
+    output logic [9:0] y,         // V count output
+    output logic blank,           // High when in visible region
+    output logic sync,
+    output logic ad_out,
+    output logic nf_out, //single cycle enable signal
+    output logic [5:0] fc_out //Counter keeps track of the frame, 60
+);
 
-    logic [10:0] puck_x, paddle_x; //puck x location, paddle x location
-    logic [9:0] puck_y, paddle_y; //puck y location, paddle y location
-    logic [7:0] puck_r,puck_g,puck_b; //puck red, green, blue (from block sprite)
-    logic [7:0] paddle_r,paddle_g,paddle_b; //paddle colors from its block sprite)
-  //use for direction of movement: 1 going positive, 0 going negative
-
-    logic dir_x, dir_y; 
-
-    logic up, down; //up down from buttons
-    logic game_over; //signal to indicate game over (0 on game reset, 1 during play)
-    assign up = control_in[1]; //up control
-    assign down = control_in[0]; //down control
-
-  //Counter to create puck and paddle movement
-    logic [8:0] puck_x_count;
-    logic [9:0] puck_y_count;
-
-    block_sprite #(.WIDTH(PADDLE_WIDTH), .HEIGHT(PADDLE_HEIGHT))
-    paddle(
-      .hcount_in(hcount_in),
-      .vcount_in(vcount_in),
-      .x_in(paddle_x),
-      .y_in(paddle_y),
-      .red_out(paddle_r),
-      .green_out(paddle_g),
-      .blue_out(paddle_b));
-
-    block_sprite #(.WIDTH(PUCK_WIDTH), .HEIGHT(PUCK_HEIGHT))
-    puck(
-      .hcount_in(hcount_in),
-      .vcount_in(vcount_in),
-      .x_in(puck_x),
-      .y_in(puck_y),
-      .red_out(puck_r),
-      .green_out(puck_g),
-      .blue_out(puck_b));
-
-    assign red_out = puck_r|paddle_r; //merge color contributions from puck and paddle
-    assign green_out =  puck_g | paddle_g; //merge color contribuations from puck and paddle
-    assign blue_out = puck_b | paddle_b; //merge color contributsion from puck and paddle
-
-    logic puck_overlap; //one bit signal indicating if puck and paddle overlap
-    //this signal should be one when puck is red in the video included in lab.
-    //make signal be derived combinationally. you will need to figure this out
-    //remember numbers are not signed here...so there's no such thing as negative
+ 
+ 
 
 
-    always_ff @(posedge pixel_clk_in)begin
-      if (rst_in)begin
-        //start puck in center of screen
-        puck_x <= GAME_WIDTH/2-PUCK_WIDTH/2;
-        puck_y <= GAME_HEIGHT/2 - PUCK_HEIGHT/2;
-        dir_x <= hcount_in[0]; //start at pseudorandom direction
-        dir_y <= hcount_in[1]; //start with pseudorandom direction
-        //start paddle in center of left half of screen
-        paddle_x <= 0;
-        paddle_y <= GAME_HEIGHT/2 - PADDLE_HEIGHT/2;
-        game_over = 0;
-      end else begin
+
+    parameter H_VISIBLE = 1280;
+    parameter H_FRONT   = 110;
+    parameter H_SYNC    = 40;
+    parameter H_BACK    = 220;
+    parameter H_TOTAL   = H_VISIBLE + H_FRONT + H_SYNC + H_BACK;
+
+    parameter V_VISIBLE = 720;
+    parameter V_FRONT   = 5;
+    parameter V_SYNC    = 5;
+    parameter V_BACK    = 20;
+    parameter V_TOTAL   = V_VISIBLE + V_FRONT + V_SYNC + V_BACK;
+
+    // Counters
+    logic [11:0] h_count;
+    logic [9:0] v_count;
+
+    // Sync signals
+    logic h_sync, v_sync;
+
+    logic nf_reg;
+
+    // Position output
+   // assign x = (h_count < H_VISIBLE) ? h_count : 10'd0;
+  //  assign y = (v_count < V_VISIBLE) ? v_count : 10'd0;
+
+   assign x = h_count;
+   assign y = v_count;
+
+    assign blank = (h_count < H_VISIBLE) && (v_count < V_VISIBLE);
 
 
-        if (~game_over && nf_in)begin
-            
-      if((puck_x +  PUCK_WIDTH > GAME_WIDTH   ) || (puck_x + PUCK_WIDTH < ( 0))  )begin
-            dir_x <= ~dir_x;
-       
-            end   
-          
-       if((puck_y + PUCK_HEIGHT > (GAME_HEIGHT  ))   || puck_y+ PUCK_HEIGHT < 0)begin
-                dir_y <=~dir_y;
-            end   
-       puck_x <= dir_x? (puck_x + 1) :(puck_x - 1) ;  
-       puck_y <= dir_y? ((puck_y + 1) ):(puck_y - 1) ;  
-            
+    assign hs_out = ~h_sync;
+    assign vs_out = ~v_sync;
+
+    // Fixed for VGA: no composite sync
+    assign sync = 1'b0;
+    assign nf_out = nf_reg;
+
+    // Sync & display logic
+    always_ff @(posedge pixel_clk_in) begin
+        if (rst_in) begin
+            h_count <= 0;
+            v_count <= 0;
+            h_sync  <= 1'b1;
+            v_sync  <= 1'b1;
+            fc_out<= 0;
+            nf_reg <= 0;
+        end else begin
+             nf_reg <= (h_count == 0 && v_count == 0);
+
+            if (nf_out) begin
+    if (fc_out == 6'd59)
+        fc_out <= 0;
+    else
+        fc_out <= fc_out + 1;
+            end 
+             
+            if (h_count == H_TOTAL - 1) begin
+                h_count <= 0;
+
+                if (v_count == V_TOTAL - 1)begin
+                    v_count <= 0;
+                    end
+                else
+                    v_count <= v_count + 1;
+            end else begin
+                h_count <= h_count + 1;
+            end
+             
+             if (h_count >= H_VISIBLE + H_FRONT &&
+                h_count <  H_VISIBLE + H_FRONT + H_SYNC)
+                h_sync <= 1'b1;
+            else
+                h_sync <= 1'b0;
+
+             if (v_count >= V_VISIBLE + V_FRONT &&
+                v_count <  V_VISIBLE + V_FRONT + V_SYNC)
+                v_sync <= 1'b1;
+            else
+                v_sync <= 1'b0;
+
+            // RGB output logic (only in visible area)
+            if ((h_count < H_VISIBLE) && (v_count < V_VISIBLE)) begin
+                
+                ad_out <= 1'b1;
+            end else begin
+                ad_out <= 0;
+
+            end
         end
     end
-    end
-  endmodule
-  `default_nettype wire
+endmodule

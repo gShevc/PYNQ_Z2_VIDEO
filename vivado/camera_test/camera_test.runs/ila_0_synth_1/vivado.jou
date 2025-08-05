@@ -1,0 +1,13 @@
+#-----------------------------------------------------------
+# Vivado v2022.2 (64-bit)
+# SW Build 3671981 on Fri Oct 14 04:59:54 MDT 2022
+# IP Build 3669848 on Fri Oct 14 08:30:02 MDT 2022
+# Start of session at: Sun Aug  3 11:25:36 2025
+# Process ID: 11576
+# Current directory: /home/ghermann/Desktop/camera_test/camera_test.runs/ila_0_synth_1
+# Command line: vivado -log ila_0.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source ila_0.tcl
+# Log file: /home/ghermann/Desktop/camera_test/camera_test.runs/ila_0_synth_1/ila_0.vds
+# Journal file: /home/ghermann/Desktop/camera_test/camera_test.runs/ila_0_synth_1/vivado.jou
+# Running On: ghermann-Inspiron-16-7620-2-in-1, OS: Linux, CPU Frequency: 1440.319 MHz, CPU Physical cores: 12, Host memory: 16437 MB
+#-----------------------------------------------------------
+source ila_0.tcl -notrace
